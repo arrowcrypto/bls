@@ -1,0 +1,8 @@
+[[override]]
+  name = "github.com/cloudflare/bn256"
+  revision = "3cac37b67c80afee373a69a32f6d8441c0b6c29c"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "v1.2.2"
+

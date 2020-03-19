@@ -1,0 +1,15 @@
+# Test binary, build with `go test -c`
+*.test
+
+
+# Temp or binary files directories
+pkg/
+bin/
+vendor/
+
+# Dependency meta files
+Gopkg.dep
+Gopkg.lock
+
+# Local config files
+.vscode/
