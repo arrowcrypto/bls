@@ -1,4 +1,6 @@
 TOP_DIR := $(shell pwd)
+TARGET := blsbenchmark
+GOBIN := $(TOP_DIR)/bin
 
 # Dependency files
 DEP_FILES := Gopkg.dep
@@ -14,7 +16,7 @@ SRCFILES := $(shell GOPATH=$(GOPATH) $(GO) list ./...)
 default: all
 
 .PHONY: all
-all: test
+all: ${TARGET}
 
 .PHONY: lint
 lint: gofmt
@@ -37,6 +39,11 @@ dep: $(DEP_FILES)
 .PHONY: test
 test: lint vet
 	@GOPATH=$(GOPATH) $(GO) test -cover $(GO_TEST_ARGS) $(SRCFILES)
+
+.PHONY: $(TARGET)
+$(TARGET): lint vet
+	@echo "Building $(TARGET) to ./bin"
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(GO) install $(SRCFILES)	
 
 # Clean all generated files
 .PHONY: clean
