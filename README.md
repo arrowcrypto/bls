@@ -1,8 +1,8 @@
 # Boneh–Lynn–Shacham Implementation
 
-This is a Boneh–Lynn–Shacham signature implementation based on cloudflare bn256 curve.
+This is a Golang implementation of Boneh–Lynn–Shacham signature based on cloudflare bn256 curve.
 
-## Benchmark
+## Simple benchmark
 
 ### Setup
 
@@ -20,5 +20,5 @@ Average latency of 1000 times of operations
 * Key generation: 369 us
 * Sign: 152 us
 * Verification: 2501 us
-* 999 times signatures aggregation: 1342 us, i.e. averagely 1.34 us
-* 999 public key aggregation: 3656 us, i.e. averagely 3.66 us
+* Signatures aggregation: 1.34 us
+* Public keys aggregation: 3.66 us
