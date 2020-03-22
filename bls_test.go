@@ -26,8 +26,25 @@ func TestBasicFunctions(t *testing.T) {
 	req.Equal(blsPublicKey.gx, newGx)
 
 	// Test Sign
-	sig := Sign(blsPrivateKey, msg, salt)
-	req.NotNil(sig)
+	sigInBytes, err := Sign(nil, msg, salt)
+	req.Error(err)
+	req.Nil(sigInBytes)
+
+	sigInBytes, err = Sign(blsPrivateKey, nil, salt)
+	req.Error(err)
+	req.Nil(sigInBytes)
+
+	sigInBytes, err = Sign(blsPrivateKey, msg, nil)
+	req.Error(err)
+	req.Nil(sigInBytes)
+
+	sigInBytes, err = Sign(blsPrivateKey, msg, salt)
+	req.NoError(err)
+	req.NotNil(sigInBytes)
+
+	sig := new(Signature)
+	err = sig.FromBytes(sigInBytes)
+	req.NoError(err)
 
 	// Test key serialization and deserialization
 	pubKeyInBytes := blsPublicKey.ToBytes()
@@ -64,10 +81,22 @@ func TestBasicFunctions(t *testing.T) {
 	newSigma := sig.sigma.ScalarMult(sig.sigma, new(big.Int).SetInt64(1))
 	req.Equal(newSigma, sig.sigma)
 
-	verified := Verify(blsPublicKey, msg, salt, sig)
-	req.Equal(true, verified)
+	err = Verify(nil, msg, salt, sig.ToBytes())
+	req.Error(err)
 
-	sigInBytes := sig.ToBytes()
+	err = Verify(blsPublicKey, nil, salt, sig.ToBytes())
+	req.Error(err)
+
+	err = Verify(blsPublicKey, msg, nil, sig.ToBytes())
+	req.Error(err)
+
+	err = Verify(blsPublicKey, msg, salt, nil)
+	req.Error(err)
+
+	err = Verify(blsPublicKey, msg, salt, sig.ToBytes())
+	req.NoError(err)
+
+	sigInBytes = sig.ToBytes()
 	newSig := new(Signature)
 	err = newSig.FromBytes(sigInBytes)
 	req.NoError(err)
@@ -77,22 +106,21 @@ func TestBasicFunctions(t *testing.T) {
 	err = badSig.FromBytes(sigInBytes)
 	req.Error(err)
 
-	verified = Verify(blsPrivateKey.GetPublicKey(), msg, salt, newSig)
-	req.Equal(true, verified)
+	err = Verify(blsPrivateKey.GetPublicKey(), msg, salt, newSig.ToBytes())
+	req.NoError(err)
 
 	sigInHex := sig.ToHex()
 	newSig = new(Signature)
 	err = newSig.FromHex(sigInHex)
 	req.NoError(err)
 
-	verified = Verify(blsPrivateKey.GetPublicKey(), msg, salt, newSig)
-	req.Equal(true, verified)
+	err = Verify(blsPrivateKey.GetPublicKey(), msg, salt, newSig.ToBytes())
+	req.NoError(err)
 
 	sigInHex = "1234"
 	badSig = new(Signature)
 	err = badSig.FromHex(sigInHex)
 	req.Error(err)
-
 }
 
 func TestAggregatedSignatures(t *testing.T) {
@@ -103,17 +131,23 @@ func TestAggregatedSignatures(t *testing.T) {
 
 	// Generate key pairs and sign messages
 	for i := 0; i < 10; i++ {
+		var err error
 		newPrivateKey, err := GenerateKeyPair()
 		req.NoError(err)
 		req.NotNil(newPrivateKey)
 		pubKeys = append(pubKeys, newPrivateKey.GetPublicKey())
 
-		sig := Sign(newPrivateKey, msg, salt)
+		sig, err := Sign(newPrivateKey, msg, salt)
+		req.NoError(err)
 		req.NotNil(sig)
-		sigs = append(sigs, sig)
 
-		verified := Verify(pubKeys[i], msg, salt, sig)
-		req.Equal(true, verified)
+		newSig := new(Signature)
+		err = newSig.FromBytes(sig)
+		req.NoError(err)
+		sigs = append(sigs, newSig)
+
+		err = Verify(pubKeys[i], msg, salt, sig)
+		req.NoError(err)
 	}
 
 	// Aggregate public keys and signatures
@@ -126,9 +160,9 @@ func TestAggregatedSignatures(t *testing.T) {
 		req.NotNil(aggPubKey)
 	}
 
-	verified := Verify(aggPubKey, msg, salt, aggSig)
-	req.Equal(true, verified)
+	err := Verify(aggPubKey, msg, salt, aggSig.ToBytes())
+	req.NoError(err)
 
-	verified = Verify(pubKeys[0], msg, salt, aggSig)
-	req.Equal(false, verified)
+	err = Verify(pubKeys[0], msg, salt, aggSig.ToBytes())
+	req.Error(err)
 }

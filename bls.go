@@ -136,21 +136,62 @@ func GenerateKeyPair() (*PrivateKey, error) {
 	return &privKey, nil
 }
 
-func Sign(privKey *PrivateKey, msg, salt []byte) *Signature {
+func sign(privKey *PrivateKey, msg, salt []byte) (*Signature, error) {
+
+	if privKey == nil || privKey.x == nil {
+		return nil, fmt.Errorf("the private key is nil")
+	}
+
+	if msg == nil || salt == nil {
+		return nil, fmt.Errorf("invalid input: signed data or salt is nil")
+	}
 
 	hash := bn256.HashG1(msg, salt)
 	sigma := hash.ScalarMult(hash, privKey.x)
-	return &Signature{sigma: sigma}
+	return &Signature{sigma: sigma}, nil
 }
 
-func Verify(pubKey *PublicKey, msg, salt []byte, sig *Signature) bool {
+func Sign(privKey *PrivateKey, msg, salt []byte) ([]byte, error) {
+	var sig *Signature
+	var err error
+	if sig, err = sign(privKey, msg, salt); err != nil {
+		return nil, err
+	}
+	return sig.ToBytes(), nil
+}
+
+func verify(pubKey *PublicKey, msg, salt []byte, sig *Signature) error {
+
+	if pubKey == nil || pubKey.gx == nil {
+		return fmt.Errorf("invalid public key: the key is nil")
+	}
+
+	if sig == nil || sig.sigma == nil {
+		return fmt.Errorf("invalid signature: the signature is nil")
+	}
+
+	if msg == nil || salt == nil {
+		return fmt.Errorf("invalid input: verified data or salt is nil")
+	}
+
 	//  check e(sigma, g2) =? e(H(m), pk )
 	h := bn256.HashG1(msg, salt)
 
 	rhs := bn256.Pair(h, pubKey.gx)
 	lhs := bn256.Pair(sig.sigma, g2gen)
 
-	return bytes.Equal(rhs.Marshal(), lhs.Marshal())
+	if !bytes.Equal(rhs.Marshal(), lhs.Marshal()) {
+		return fmt.Errorf("invalid signature: mismatch of expected and actual signatures")
+	}
+	return nil
+}
+
+func Verify(pubKey *PublicKey, msg, salt, sig []byte) error {
+	signature := new(Signature)
+	if err := signature.FromBytes(sig); err != nil {
+		return fmt.Errorf("malformed signature")
+	}
+	return verify(pubKey, msg, salt, signature)
 }
 
 // AggregateSignatures combines signatures

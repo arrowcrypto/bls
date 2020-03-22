@@ -21,6 +21,7 @@ func benchmark() {
 	publicKeys := make([]*bls.PublicKey, TIMES)
 	privateKeys := make([]*bls.PrivateKey, TIMES)
 	sigs := make([]*bls.Signature, TIMES)
+	//sigsInBytes := make([][]byte, TIMES)
 
 	// Test key generation
 	start := time.Now()
@@ -34,7 +35,12 @@ func benchmark() {
 	// Test Sign
 	start = time.Now()
 	for i := int64(0); i < TIMES; i++ {
-		sigs[i] = bls.Sign(privateKeys[i], msg, salt)
+		sigInBytes, _ := bls.Sign(privateKeys[i], msg, salt)
+		sigs[i] = new(bls.Signature)
+		if err := sigs[i].FromBytes(sigInBytes); err != nil {
+			panic("failed to sign")
+		}
+
 	}
 	end = time.Now()
 	fmt.Printf("Average latency of BLS signature sign is %v (us).\n",
@@ -47,7 +53,7 @@ func benchmark() {
 	// Test verification
 	start = time.Now()
 	for i := int64(0); i < TIMES; i++ {
-		if verified := bls.Verify(publicKeys[i], msg, salt, sigs[i]); !verified {
+		if err := bls.Verify(publicKeys[i], msg, salt, sigs[i].ToBytes()); err != nil {
 			panic("signature verification failed.")
 		}
 	}
@@ -78,7 +84,7 @@ func benchmark() {
 		" averagely %v (us).\n", end.Sub(start).Microseconds(),
 		end.Sub(start).Microseconds()/(TIMES-1))
 
-	if verified := bls.Verify(aggPubKey, msg, salt, aggSig); !verified {
+	if err := bls.Verify(aggPubKey, msg, salt, aggSig.ToBytes()); err != nil {
 		panic("aggregated signature verification failed.")
 	}
 }
