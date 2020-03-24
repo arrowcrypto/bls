@@ -165,4 +165,22 @@ func TestAggregatedSignatures(t *testing.T) {
 
 	err = Verify(pubKeys[0], msg, salt, aggSig.ToBytes())
 	req.Error(err)
+
+	// Aggregate a single key twice
+	aggPubKey = AggregatePublicKeys(aggPubKey, pubKeys[1])
+	err = Verify(aggPubKey, msg, salt, aggSig.ToBytes())
+	req.Error(err)
+
+	// Aggregate the corresponding signture once more
+	aggSig = AggregateSignatures(aggSig, sigs[1])
+	err = Verify(aggPubKey, msg, salt, aggSig.ToBytes())
+	req.NoError(err)
+
+	aggPubKey = AggregatePublicKeys(aggPubKey, pubKeys[2])
+	err = Verify(aggPubKey, msg, salt, aggSig.ToBytes())
+	req.Error(err)
+
+	aggSig = AggregateSignatures(aggSig, sigs[3])
+	err = Verify(aggPubKey, msg, salt, aggSig.ToBytes())
+	req.Error(err)
 }
