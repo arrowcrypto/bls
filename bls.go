@@ -194,10 +194,10 @@ func Verify(pubKey *PublicKey, msg, salt, sig []byte) error {
 	return verify(pubKey, msg, salt, signature)
 }
 
-// AggregateSignatures combines signatures
+// aggregateSignatures combines signatures
 func AggregateSignatures(sigs ...*Signature) *Signature {
-
 	var aggregrated *Signature
+
 	for i, sig := range sigs {
 		if i == 0 {
 			aggregrated = &Signature{
@@ -208,6 +208,27 @@ func AggregateSignatures(sigs ...*Signature) *Signature {
 		}
 	}
 	return aggregrated
+}
+
+// AggregateSignatures combines signatures in byte array
+func AggregateSigsInBytes(sigs ...[]byte) ([]byte, error) {
+	var aggregrated, curSig *Signature
+	var err error
+	for i, sigInBytes := range sigs {
+		if i == 0 {
+			aggregrated = new(Signature)
+			if err = aggregrated.FromBytes(sigInBytes); err != nil {
+				return nil, err
+			}
+		} else {
+			curSig = new(Signature)
+			if err = curSig.FromBytes(sigInBytes); err != nil {
+				return nil, err
+			}
+			aggregrated = AggregateSignatures(aggregrated, curSig)
+		}
+	}
+	return aggregrated.ToBytes(), nil
 }
 
 // AggregatePublicKeys combines public keys

@@ -152,15 +152,28 @@ func TestAggregatedSignatures(t *testing.T) {
 
 	// Aggregate public keys and signatures
 	aggSig := AggregateSignatures(sigs[0])
+	req.NotNil(aggSig)
+
+	aggSigInBytes, err := AggregateSigsInBytes(sigs[0].ToBytes())
+	req.NoError(err)
+	req.NotNil(aggSigInBytes)
+
 	aggPubKey := AggregatePublicKeys(pubKeys[0])
 	for i := 1; i < 10; i++ {
 		aggSig = AggregateSignatures(aggSig, sigs[i])
 		req.NotNil(aggSig)
+		aggSigInBytes, err = AggregateSigsInBytes(aggSigInBytes, sigs[i].ToBytes())
+		req.NoError(err)
 		aggPubKey = AggregatePublicKeys(aggPubKey, pubKeys[i])
 		req.NotNil(aggPubKey)
 	}
 
-	err := Verify(aggPubKey, msg, salt, aggSig.ToBytes())
+	err = Verify(aggPubKey, msg, salt, aggSig.ToBytes())
+	req.NoError(err)
+
+	req.Equal(aggSigInBytes, aggSig.ToBytes())
+
+	err = Verify(aggPubKey, msg, salt, aggSigInBytes)
 	req.NoError(err)
 
 	err = Verify(pubKeys[0], msg, salt, aggSig.ToBytes())
